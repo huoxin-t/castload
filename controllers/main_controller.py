@@ -2,6 +2,7 @@
 from flask import Flask, jsonify, request, render_template
 from core.podcast_extractor import PodcastExtractor
 from core.downloader import PodcastDownloader
+from core.config import Config
 from models.download_status import DownloadStatus
 from database import get_all_episodes_with_podcast_info
 from models.podcast_models import PodcastEpisode
@@ -333,3 +334,48 @@ class MainController:
         def history():
             """渲染历史记录页面"""
             return render_template('history.html')
+        
+        @self.app.route('/api/download-file/<filename>', methods=['GET'])
+        def download_file(filename):
+            """API 接口：下载已保存的播客文件到用户本地设备"""
+            try:
+                # 构建完整的文件路径
+                file_path = os.path.join(Config.DOWNLOAD_DIR, filename)
+                
+                # 检查文件是否存在
+                if not os.path.exists(file_path):
+                    return jsonify({
+                        'success': False,
+                        'error': '文件不存在'
+                    }), 404
+                
+                # 检查是否为文件（而不是目录）
+                if not os.path.isfile(file_path):
+                    return jsonify({
+                        'success': False,
+                        'error': '指定路径不是文件'
+                    }), 400
+                
+                # 安全检查：确保文件在下载目录内
+                # 获取绝对路径以防止目录遍历攻击
+                abs_file_path = os.path.abspath(file_path)
+                abs_download_dir = os.path.abspath(Config.DOWNLOAD_DIR)
+                
+                if not abs_file_path.startswith(abs_download_dir):
+                    return jsonify({
+                        'success': False,
+                        'error': '文件访问被拒绝'
+                    }), 403
+                
+                # 返回文件供下载
+                from flask import send_file
+                return send_file(
+                    file_path,
+                    as_attachment=True,  # 强制下载而不是在浏览器中打开
+                    download_name=filename  # 设置下载文件名
+                )
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500

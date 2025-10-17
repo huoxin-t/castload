@@ -50,6 +50,27 @@ pip install -r requirements.txt
    - `DOWNLOAD_DIR`: 下载文件存储目录
    - `TEST_MODE`: 是否启用测试模式
 
+### 环境变量配置（推荐）
+为了在不同环境中灵活配置，建议使用环境变量：
+
+- `PODCAST_DOWNLOAD_DIR`: 下载目录路径，默认为 `download`
+- `PODCAST_MAX_WORKERS`: 最大并发下载数，默认为 `3`
+- `PODCAST_TEST_MODE`: 测试模式开关，设置为 `False` 可关闭测试模式
+
+在Linux/macOS系统中设置环境变量示例：
+```bash
+export PODCAST_DOWNLOAD_DIR="/path/to/your/download/directory"
+export PODCAST_MAX_WORKERS="5"
+export PODCAST_TEST_MODE="False"
+```
+
+在Windows系统中设置环境变量示例：
+```cmd
+set PODCAST_DOWNLOAD_DIR=C:\path\to\your\download\directory
+set PODCAST_MAX_WORKERS=5
+set PODCAST_TEST_MODE=False
+```
+
 ### 启动应用
 1. 运行主应用：
 ```bash
