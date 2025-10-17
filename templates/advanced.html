@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Castbox 播客数据管理器</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        /* 基础样式 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        h1 {
+            background: linear-gradient(135deg, #2c5aa0, #1e3d6f);
+            color: white;
+            margin: 0;
+            padding: 25px 30px;
+            text-align: center;
+            font-size: 2.2em;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        /* 配置面板 */
+        .config-panel {
+            padding: 25px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .config-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #2c5aa0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        input[type="url"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        input[type="url"]:focus, input[type="number"]:focus {
+            border-color: #2c5aa0;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(44, 90, 160, 0.1);
+        }
+        
+        .help-text {
+            font-size: 14px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+        }
+        
+        .range-inputs {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .range-inputs input {
+            flex: 1;
+        }
+        
+        .range-inputs span {
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #2c5aa0, #1e3d6f);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #218838);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* 状态消息 */
+        .status-message {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .status-success {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background: linear-gradient(135deg, #f8d7da, #f1b0b7);
+            color: #721c24;
+            border: 1px solid #f1b0b7;
+        }
+        
+        .status-info {
+            background: linear-gradient(135deg, #d1ecf1, #b8daff);
+            color: #0c5460;
+            border: 1px solid #b8daff;
+        }
+        
+        /* 加载动画 */
+        .loading {
+            text-align: center;
+            padding: 30px;
+            display: none;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2c5aa0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 播客列表选择区域 */
+        .episodes-selection {
+            padding: 30px;
+        }
+        
+        .episodes-selection h2 {
+            color: #2c5aa0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .selection-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .selection-controls .btn {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+        
+        .episodes-list-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            background: #fafafa;
+        }
+        
+        .episode-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .episode-item:last-child {
+            border-bottom: none;
+        }
+        
+        .episode-item:hover {
+            background: #f0f8ff;
+            transform: translateX(5px);
+        }
+        
+        .episode-item.selected {
+            background: #e3f2fd;
+            border-left: 4px solid #2c5aa0;
+        }
+        
+        .episode-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .episode-title {
+            flex: 1;
+            font-size: 16px;
+            color: #333;
+            word-break: break-word;
+        }
+        
+        /* 选择计数 */
+        .selection-count {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: 500;
+            color: #2c5aa0;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            h1 {
+                padding: 20px;
+                font-size: 1.8em;
+            }
+            
+            .config-panel, .episodes-selection {
+                padding: 20px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .selection-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .episodes-list-container {
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎧 Castbox 播客数据管理器</h1>
+        
+        <!-- 配置面板 -->
+        <div class="config-panel">
+            <div class="config-title">播客爬取配置</div>
+            
+            <div class="form-group">
+                <label for="podcast-url">播客列表地址:</label>
+                <input type="url" id="podcast-url" placeholder="请输入 Castbox 播客列表地址...">
+                <div class="help-text">支持 Castbox 平台的播客列表页面地址</div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enable-limit">
+                        <label for="enable-limit">限制下载数量</label>
+                    </div>
+                    <input type="number" id="download-limit" min="1" max="100" value="3" disabled>
+                    <div class="help-text">最多下载多少个播客</div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enable-range" checked>
+                        <label for="enable-range">指定下载范围</label>
+                    </div>
+                    <div class="range-inputs">
+                        <input type="number" id="range-start" min="0" value="0" placeholder="开始">
+                        <span>到</span>
+                        <input type="number" id="range-end" min="1" value="10" placeholder="结束">
+                    </div>
+                    <div class="help-text">从第几个开始，到第几个结束（从0开始计数）</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="max-workers">并发线程数:</label>
+                    <input type="number" id="max-workers" min="1" max="8" value="5">
+                    <div class="help-text">同时下载的线程数量</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="batch-size">分批加载数量:</label>
+                    <input type="number" id="batch-size" min="1" max="50" value="10">
+                    <div class="help-text">每次加载的播客数量</div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enable-retry" checked>
+                        <label for="enable-retry">启用重试机制</label>
+                    </div>
+                    <input type="number" id="retry-count" min="1" max="5" value="3">
+                    <div class="help-text">下载失败时的重试次数</div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enable-timeout" checked>
+                        <label for="enable-timeout">启用超时设置</label>
+                    </div>
+                    <input type="number" id="timeout-seconds" min="10" max="300" value="60">
+                    <div class="help-text">单个文件下载超时时间（秒）</div>
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button onclick="loadEpisodes()" id="loadBtn" class="btn btn-primary">
+                    📥 加载播客列表
+                </button>
+                <button onclick="saveConfig()" class="btn btn-secondary">
+                    💾 保存配置
+                </button>
+                <button onclick="downloadSelected()" id="downloadSelected" class="btn btn-success" disabled>
+                    ⬇️ 下载选中项
+                </button>
+                <a href="/history.html" class="btn btn-secondary">
+                    📚 下载历史
+                </a>
+            </div>
+        </div>
+        
+        <!-- 状态消息 -->
+        <div id="status-message" class="status-message"></div>
+        
+        <!-- 加载动画 -->
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <div>📡 正在加载播客列表...</div>
+            <div style="margin-top: 10px;">⏳ 首次加载可能需要一些时间，请耐心等待</div>
+        </div>
+        
+        <!-- 播客列表选择区域 -->
+        <div id="episodes-selection" class="episodes-selection" style="display: none;">
+            <h2>📋 播客列表</h2>
+            
+            <div class="selection-controls">
+                <button onclick="selectAll()" class="btn btn-secondary">全选</button>
+                <button onclick="deselectAll()" class="btn btn-secondary">全不选</button>
+                <button onclick="invertSelection()" class="btn btn-secondary">反选</button>
+                <button onclick="selectFromZero()" class="btn btn-secondary">从0开始选择</button>
+            </div>
+            
+            <div class="selection-count">
+                已选择 <span id="selected-count">0</span> 个播客
+            </div>
+            
+            <div id="episodes-list-container" class="episodes-list-container">
+                <!-- 播客列表将在这里显示 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentEpisodes = [];
+        let selectedEpisodes = new Set();
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+        });
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 复选框事件监听
+            const enableLimit = document.getElementById('enable-limit');
+            const enableRange = document.getElementById('enable-range');
+            const enableRetry = document.getElementById('enable-retry');
+            const enableTimeout = document.getElementById('enable-timeout');
+            
+            if (enableLimit) {
+                enableLimit.addEventListener('change', function() {
+                    const downloadLimit = document.getElementById('download-limit');
+                    if (downloadLimit) {
+                        downloadLimit.disabled = !this.checked;
+                    }
+                    if (this.checked) {
+                        const enableRangeEl = document.getElementById('enable-range');
+                        if (enableRangeEl) enableRangeEl.checked = false;
+                    }
+                });
+            }
+            
+            if (enableRange) {
+                enableRange.addEventListener('change', function() {
+                    const rangeStart = document.getElementById('range-start');
+                    const rangeEnd = document.getElementById('range-end');
+                    if (rangeStart) rangeStart.disabled = !this.checked;
+                    if (rangeEnd) rangeEnd.disabled = !this.checked;
+                    if (this.checked) {
+                        const enableLimitEl = document.getElementById('enable-limit');
+                        if (enableLimitEl) enableLimitEl.checked = false;
+                    }
+                });
+            }
+            
+            if (enableRetry) {
+                enableRetry.addEventListener('change', function() {
+                    const retryCount = document.getElementById('retry-count');
+                    if (retryCount) {
+                        retryCount.disabled = !this.checked;
+                    }
+                });
+            }
+            
+            if (enableTimeout) {
+                enableTimeout.addEventListener('change', function() {
+                    const timeoutSeconds = document.getElementById('timeout-seconds');
+                    if (timeoutSeconds) {
+                        timeoutSeconds.disabled = !this.checked;
+                    }
+                });
+            }
+        }
+        
+        // 保存配置
+        async function saveConfig() {
+            const config = {
+                podcast_url: document.getElementById('podcast-url').value,
+                enable_limit: document.getElementById('enable-limit').checked,
+                download_limit: parseInt(document.getElementById('download-limit').value),
+                enable_range: document.getElementById('enable-range').checked,
+                download_range_start: parseInt(document.getElementById('range-start').value),
+                download_range_end: parseInt(document.getElementById('range-end').value),
+                max_workers: parseInt(document.getElementById('max-workers').value),
+                enable_retry: document.getElementById('enable-retry').checked,
+                retry_count: parseInt(document.getElementById('retry-count').value),
+                enable_timeout: document.getElementById('enable-timeout').checked,
+                timeout_seconds: parseInt(document.getElementById('timeout-seconds').value)
+            };
+            
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                showStatus(result.success ? '配置已保存' : '保存失败: ' + result.error, result.success);
+                
+            } catch (error) {
+                showStatus('保存失败: ' + error.message, false);
+            }
+        }
+        
+        // 加载播客列表
+        async function loadEpisodes() {
+            const url = document.getElementById('podcast-url').value;
+            if (!url) {
+                showStatus('请输入播客列表地址', false);
+                return;
+            }
+            
+            showLoading(true);
+            
+            // 获取配置
+            const enableLimit = document.getElementById('enable-limit').checked;
+            const downloadLimit = parseInt(document.getElementById('download-limit').value);
+            const enableRange = document.getElementById('enable-range').checked;
+            const rangeStart = parseInt(document.getElementById('range-start').value);
+            const rangeEnd = parseInt(document.getElementById('range-end').value);
+            const maxWorkers = parseInt(document.getElementById('max-workers').value);
+            const batchSize = parseInt(document.getElementById('batch-size').value);
+            
+            const config = {
+                podcast_url: url,
+                enable_limit: enableLimit,
+                download_limit: downloadLimit,
+                enable_range: enableRange,
+                download_range_start: rangeStart,
+                download_range_end: rangeEnd,
+                max_workers: maxWorkers,
+                batch_size: batchSize
+            };
+            
+            try {
+                const response = await fetch('/api/load-episodes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentEpisodes = result.episodes;
+                    displayEpisodesForSelection(currentEpisodes);
+                    document.getElementById('episodes-selection').style.display = 'block';
+                    showStatus(`成功加载 ${result.episodes.length} 个播客`, true);
+                } else {
+                    showStatus('加载失败: ' + result.error, false);
+                }
+                
+            } catch (error) {
+                showStatus('加载失败: ' + error.message, false);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // 显示播客列表供选择
+        function displayEpisodesForSelection(episodes) {
+            const container = document.getElementById('episodes-list-container');
+            container.innerHTML = '';
+            
+            if (episodes.length === 0) {
+                container.innerHTML = '<p>没有找到播客数据</p>';
+                return;
+            }
+            
+            episodes.forEach((episode, index) => {
+                // 处理数组格式的播客数据 [标题, URL]
+                const title = Array.isArray(episode) ? episode[0] : episode.title;
+                const url = Array.isArray(episode) ? episode[1] : episode.url;
+                
+                const div = document.createElement('div');
+                div.className = 'episode-item';
+                div.innerHTML = `
+                    <input type="checkbox" class="episode-checkbox" id="episode-${index}" data-index="${index}">
+                    <label for="episode-${index}" class="episode-title">${escapeHtml(title)}</label>
+                `;
+                
+                // 添加点击事件监听器
+                div.addEventListener('click', function(e) {
+                    // 如果点击的是复选框本身，则不处理
+                    if (e.target.type === 'checkbox') return;
+                    
+                    // 切换复选框状态
+                    const checkbox = div.querySelector('.episode-checkbox');
+                    checkbox.checked = !checkbox.checked;
+                    
+                    // 更新选中状态
+                    if (checkbox.checked) {
+                        selectedEpisodes.add(parseInt(checkbox.dataset.index));
+                        div.classList.add('selected');
+                    } else {
+                        selectedEpisodes.delete(parseInt(checkbox.dataset.index));
+                        div.classList.remove('selected');
+                    }
+                    
+                    updateSelectionCount();
+                });
+                
+                // 添加复选框变化事件监听器
+                const checkbox = div.querySelector('.episode-checkbox');
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        selectedEpisodes.add(parseInt(this.dataset.index));
+                        div.classList.add('selected');
+                    } else {
+                        selectedEpisodes.delete(parseInt(this.dataset.index));
+                        div.classList.remove('selected');
+                    }
+                    updateSelectionCount();
+                });
+                
+                container.appendChild(div);
+            });
+            
+            // 启用下载按钮
+            document.getElementById('downloadSelected').disabled = false;
+            
+            // 更新选择计数
+            updateSelectionCount();
+        }
+        
+        // 更新选择计数
+        function updateSelectionCount() {
+            document.getElementById('selected-count').textContent = selectedEpisodes.size;
+        }
+        
+        // 全选
+        function selectAll() {
+            const checkboxes = document.querySelectorAll('.episode-checkbox');
+            checkboxes.forEach(checkbox => {
+                if (!checkbox.checked) {
+                    checkbox.checked = true;
+                    selectedEpisodes.add(parseInt(checkbox.dataset.index));
+                    checkbox.parentElement.classList.add('selected');
+                }
+            });
+            updateSelectionCount();
+        }
+        
+        // 全不选
+        function deselectAll() {
+            const checkboxes = document.querySelectorAll('.episode-checkbox');
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    checkbox.checked = false;
+                    selectedEpisodes.delete(parseInt(checkbox.dataset.index));
+                    checkbox.parentElement.classList.remove('selected');
+                }
+            });
+            updateSelectionCount();
+        }
+        
+        // 反选
+        function invertSelection() {
+            const checkboxes = document.querySelectorAll('.episode-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = !checkbox.checked;
+                if (checkbox.checked) {
+                    selectedEpisodes.add(parseInt(checkbox.dataset.index));
+                    checkbox.parentElement.classList.add('selected');
+                } else {
+                    selectedEpisodes.delete(parseInt(checkbox.dataset.index));
+                    checkbox.parentElement.classList.remove('selected');
+                }
+            });
+            updateSelectionCount();
+        }
+        
+        // 从0开始选择
+        function selectFromZero() {
+            // 先全不选
+            deselectAll();
+            
+            // 获取范围设置
+            const enableRange = document.getElementById('enable-range').checked;
+            const rangeStart = parseInt(document.getElementById('range-start').value);
+            const rangeEnd = parseInt(document.getElementById('range-end').value);
+            
+            let count = 0;
+            if (enableRange) {
+                count = rangeEnd - rangeStart;
+            } else {
+                // 如果没有启用范围，则默认选择前10个
+                count = Math.min(10, currentEpisodes.length);
+            }
+            
+            // 选择前count个
+            const checkboxes = document.querySelectorAll('.episode-checkbox');
+            for (let i = 0; i < Math.min(count, checkboxes.length); i++) {
+                const checkbox = checkboxes[i];
+                checkbox.checked = true;
+                selectedEpisodes.add(parseInt(checkbox.dataset.index));
+                checkbox.parentElement.classList.add('selected');
+            }
+            
+            updateSelectionCount();
+        }
+        
+        // 下载选中的播客
+        async function downloadSelected() {
+            if (selectedEpisodes.size === 0) {
+                showStatus('请先选择要下载的播客', false);
+                return;
+            }
+            
+            const selectedData = Array.from(selectedEpisodes).map(index => currentEpisodes[index]);
+            
+            // 获取下载配置
+            const enableLimit = document.getElementById('enable-limit').checked;
+            const downloadLimit = parseInt(document.getElementById('download-limit').value);
+            const enableRange = document.getElementById('enable-range').checked;
+            const rangeStart = parseInt(document.getElementById('range-start').value);
+            const rangeEnd = parseInt(document.getElementById('range-end').value);
+            
+            // 计算实际将要下载的数量
+            let actualDownloadCount = selectedData.length;
+            
+            if (enableLimit && selectedData.length > downloadLimit) {
+                actualDownloadCount = downloadLimit;
+            }
+            
+            if (enableRange) {
+                const rangeCount = rangeEnd - rangeStart;
+                if (actualDownloadCount > rangeCount) {
+                    actualDownloadCount = rangeCount;
+                }
+            }
+            
+            // 显示下载信息
+            if (actualDownloadCount < selectedData.length) {
+                showStatus(`⚠️ 选择了 ${selectedData.length} 个，但限制为 ${actualDownloadCount} 个，将只下载前 ${actualDownloadCount} 个`, true);
+            }
+            
+            // 安全地获取配置值
+            const getValue = (id, defaultValue = '') => {
+                const element = document.getElementById(id);
+                return element ? element.value : defaultValue;
+            };
+            
+            const getChecked = (id) => {
+                const element = document.getElementById(id);
+                return element ? element.checked : false;
+            };
+            
+            const getNumber = (id, defaultValue = 0) => {
+                const element = document.getElementById(id);
+                return element ? parseInt(element.value) || defaultValue : defaultValue;
+            };
+            
+            const maxWorkers = getNumber('max-workers', 5);
+            
+            // 获取下载选项
+            const downloadOptions = {
+                quality: 'medium',  // 默认中等质量
+                format: 'mp3',       // 默认MP3格式
+                enable_retry: getChecked('enable-retry'),
+                retry_count: getNumber('retry-count', 3),
+                enable_timeout: getChecked('enable-timeout'),
+                timeout_seconds: getNumber('timeout-seconds', 60)
+            };
+            
+            showStatus(`开始下载 ${actualDownloadCount} 个播客...`, true);
+            
+            try {
+                // 创建控制器以支持超时设置
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 300000); // 5分钟超时
+                
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        episodes: selectedData.slice(0, actualDownloadCount),
+                        max_workers: maxWorkers,
+                        download_options: downloadOptions
+                    }),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus(result.message, true);
+                    // 开始监控下载状态
+                    monitorDownloadStatus();
+                } else {
+                    showStatus('下载失败: ' + result.error, false);
+                }
+                
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    showStatus('下载请求超时 (5分钟)，但后台仍在处理中，请稍后查看下载状态', false);
+                } else {
+                    showStatus('下载失败: ' + error.message, false);
+                }
+            }
+        }
+        
+        // 监控下载状态
+        function monitorDownloadStatus() {
+            const statusInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/download-status');
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        const status = result.status;
+                        const total = status.total;
+                        const completed = status.completed;
+                        const failed = status.failed;
+                        
+                        if (total > 0) {
+                            const progress = (completed / total) * 100;
+                            
+                            // 更新状态消息，包含更详细信息
+                            let statusMessage = `下载进度: ${completed}/${total} (${progress.toFixed(1)}%)`;
+                            
+                            // 显示当前下载的文件
+                            const currentDownloads = status.current_downloads;
+                            const downloadingCount = Object.keys(currentDownloads).filter(title => 
+                                currentDownloads[title] === 'downloading'
+                            ).length;
+                            
+                            if (downloadingCount > 0) {
+                                statusMessage += ` | 正在下载: ${downloadingCount} 个文件`;
+                            }
+                            
+                            if (failed > 0) {
+                                statusMessage += ` | 失败: ${failed} 个`;
+                            }
+                            
+                            showStatus(statusMessage, true);
+                            
+                            // 检查是否完成
+                            if (completed + failed >= total) {
+                                clearInterval(statusInterval);
+                                if (failed > 0) {
+                                    showStatus(`下载完成: 成功 ${completed} 个, 失败 ${failed} 个`, false);
+                                } else {
+                                    showStatus(`下载完成: 成功 ${completed} 个播客！`, true);
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('获取下载状态失败:', error);
+                }
+            }, 2000); // 每2秒检查一次
+        }
+        
+        // 工具函数
+        function showStatus(message, isSuccess) {
+            const statusEl = document.getElementById('status-message');
+            statusEl.textContent = message;
+            statusEl.className = 'status-message ' + (isSuccess === true ? 'status-success' : isSuccess === false ? 'status-error' : 'status-info');
+            statusEl.style.display = 'block';
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 3000);
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
